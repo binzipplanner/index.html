@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>오늘의빈집 연구소 — 회원 관리 시스템</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --g800: #1B5132; --g700: #1e6b3f; --g600: #2d8a56;
+  --g200: #a8ddbf; --g100: #d4f0e0; --g50: #edf8f2;
+  --cream: #f8f5ef; --gold: #c9a94a; --gold-l: #f0e4b8;
+  --td: #1a1a1a; --tm: #4a5568; --tl: #718096;
+  --border: rgba(27,81,50,0.15);
+  --sidebar-w: 240px;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;}
+html,body{height:100%;background:var(--cream);}
+
+/* ── LOCK SCREEN ── */
+#lock-screen{
+  position:fixed;inset:0;background:var(--g800);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;flex-direction:column;gap:0;
+}
+.lock-box{
+  background:white;border-radius:20px;padding:40px 36px;
+  width:320px;text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,0.25);
+}
+.lock-logo{
+  width:64px;height:64px;background:var(--g800);border-radius:14px;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 18px;
+}
+.lock-logo svg{width:40px;height:40px;}
+.lock-title{font-size:18px;font-weight:700;color:var(--td);margin-bottom:6px;}
+.lock-sub{font-size:12px;color:var(--tl);margin-bottom:24px;}
+.lock-input{
+  width:100%;padding:13px 16px;border:1.5px solid var(--border);
+  border-radius:10px;font-size:20px;letter-spacing:8px;text-align:center;
+  outline:none;font-family:inherit;transition:border .15s;
+  margin-bottom:14px;
+}
+.lock-input:focus{border-color:var(--g600);}
+.lock-btn{
+  width:100%;padding:13px;background:var(--g800);color:white;
+  border:none;border-radius:10px;font-size:14px;font-weight:600;
+  cursor:pointer;transition:background .15s;font-family:inherit;
+}
+.lock-btn:hover{background:var(--g700);}
+.lock-err{font-size:12px;color:#e53e3e;margin-top:10px;display:none;}
+.lock-shake{animation:shake .35s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+
+/* ── LAYOUT ── */
+.app{display:flex;min-height:100vh;}
+.sidebar{
+  position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);
+  background:var(--g800);display:flex;flex-direction:column;z-index:100;
+  transform:translateX(0);transition:transform .25s ease;
+}
+.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,.1);}
+.logo-icon{width:44px;height:44px;background:white;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+.logo-icon svg{width:28px;height:28px;}
+.logo-name{color:white;font-size:15px;font-weight:700;line-height:1.3;}
+.logo-sub{color:var(--g200);font-size:11px;margin-top:3px;letter-spacing:.05em;}
+.nav{flex:1;padding:16px 12px;overflow-y:auto;}
+.nav-section{margin-bottom:20px;}
+.nav-label{color:var(--g200);font-size:10px;font-weight:600;letter-spacing:.1em;padding:0 8px;margin-bottom:6px;text-transform:uppercase;}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;border-radius:8px;
+  color:rgba(255,255,255,.75);font-size:13px;
+  cursor:pointer;transition:all .15s;margin-bottom:2px;
+  border:none;background:none;width:100%;text-align:left;font-family:inherit;
+}
+.nav-item:hover{background:rgba(255,255,255,.1);color:white;}
+.nav-item.active{background:rgba(255,255,255,.15);color:white;font-weight:500;}
+.nav-item i{font-size:16px;width:20px;text-align:center;}
+.sidebar-footer{padding:16px;border-top:1px solid rgba(255,255,255,.1);}
+.admin-badge{display:flex;align-items:center;gap:10px;}
+.admin-av{width:32px;height:32px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0D2B1A;flex-shrink:0;}
+.admin-name{color:white;font-size:12px;font-weight:500;}
+.admin-role{color:var(--g200);font-size:10px;}
+
+/* ── MOBILE TOP BAR ── */
+.mobile-topbar{
+  display:none;position:fixed;top:0;left:0;right:0;height:56px;
+  background:var(--g800);z-index:200;
+  align-items:center;padding:0 16px;gap:12px;
+}
+.mobile-menu-btn{
+  width:36px;height:36px;border:none;background:rgba(255,255,255,.1);
+  border-radius:8px;color:white;font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.mobile-logo-name{color:white;font-size:14px;font-weight:700;flex:1;}
+.sidebar-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;
+}
+
+/* ── MAIN ── */
+.main{margin-left:var(--sidebar-w);min-height:100vh;flex:1;}
+.topbar{
+  background:white;border-bottom:1px solid var(--border);
+  padding:16px 32px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;
+}
+.topbar-title{font-size:18px;font-weight:600;color:var(--td);}
+.topbar-sub{font-size:12px;color:var(--tl);margin-top:2px;}
+.topbar-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.content{padding:24px 32px;}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;
+  cursor:pointer;transition:all .15s;border:none;white-space:nowrap;font-family:inherit;
+}
+.btn-primary{background:var(--g800);color:white;}
+.btn-primary:hover{background:var(--g700);}
+.btn-outline{background:white;color:var(--td);border:1px solid var(--border);}
+.btn-outline:hover{background:var(--g50);}
+.btn-danger{background:#fff5f5;color:#c53030;border:1px solid #fed7d7;}
+.btn-danger:hover{background:#fed7d7;}
+.btn-sm{padding:6px 12px;font-size:12px;}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:white;border:1px solid var(--border);border-radius:12px;padding:18px 16px;position:relative;overflow:hidden;cursor:pointer;transition:box-shadow .15s;}
+.stat-card:hover{box-shadow:0 2px 12px rgba(27,81,50,.12);}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.stat-card.s0::before{background:#cbd5e0;}
+.stat-card.s1::before{background:#68d391;}
+.stat-card.s2::before{background:#4299e1;}
+.stat-card.s3::before{background:var(--gold);}
+.stat-card.s4::before{background:var(--g800);}
+.stat-label{font-size:11px;color:var(--tl);font-weight:500;margin-bottom:8px;}
+.stat-num{font-size:26px;font-weight:700;color:var(--td);line-height:1;}
+.stat-num span{font-size:13px;color:var(--tl);font-weight:400;margin-left:3px;}
+
+/* ── GRADE GUIDE ── */
+.grade-guide{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}
+.grade-item{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all .15s;}
+.grade-item:hover{border-color:var(--g600);box-shadow:0 2px 8px rgba(27,81,50,.1);}
+.grade-icon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:20px;}
+.grade-name{font-size:13px;font-weight:700;color:var(--td);margin-bottom:4px;}
+.grade-cnt{font-size:20px;font-weight:700;margin:8px 0 4px;}
+.grade-desc{font-size:11px;color:var(--tl);line-height:1.5;}
+
+/* ── CARD / TABLE ── */
+.card{background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.filter-bar{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--g50);border-radius:8px;padding:8px 14px;flex:1;min-width:180px;border:1px solid var(--g100);}
+.search-box input{border:none;background:none;outline:none;font-size:13px;color:var(--td);width:100%;font-family:inherit;}
+.search-box i{color:var(--tl);font-size:15px;}
+.filter-select{padding:8px 28px 8px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--td);background:white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23718096'/%3E%3C/svg%3E") no-repeat right 10px center;appearance:none;outline:none;cursor:pointer;font-family:inherit;}
+.table{width:100%;border-collapse:collapse;}
+.table th{background:var(--g50);padding:11px 16px;font-size:11px;font-weight:600;color:var(--tl);text-align:left;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);}
+.table td{padding:13px 16px;font-size:13px;color:var(--td);border-bottom:1px solid var(--border);}
+.table tr:last-child td{border-bottom:none;}
+.table tr:hover td{background:var(--g50);}
+
+/* ── BADGES ── */
+.gb{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap;}
+.g-예비수강생{background:#f0f0f0;color:#555;}
+.g-수강생{background:#e6f7ef;color:#1B5132;}
+.g-빈집플래너{background:#e6f0ff;color:#1a56db;}
+.g-로컬큐레이터{background:var(--gold-l);color:#7a5c00;}
+.g-소장{background:var(--g800);color:white;}
+
+.mav{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.av-예비수강생{background:#e2e8f0;color:#4a5568;}
+.av-수강생{background:var(--g100);color:var(--g800);}
+.av-빈집플래너{background:#bee3f8;color:#2b6cb0;}
+.av-로컬큐레이터{background:var(--gold-l);color:#7a5c00;}
+.av-소장{background:var(--g800);color:white;}
+
+.cb{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:6px;font-size:11px;}
+.cv{background:#e6f7ef;color:#1e6b3f;border:1px solid var(--g200);}
+.cn{background:#f7f7f7;color:#a0aec0;border:1px solid #e2e8f0;}
+
+/* ── FORMS ── */
+.fg{margin-bottom:16px;}
+.fl{display:block;font-size:12px;font-weight:600;color:var(--tm);margin-bottom:6px;letter-spacing:.03em;}
+.fi,.fs{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--td);outline:none;transition:border .15s;background:white;font-family:inherit;}
+.fi:focus,.fs:focus{border-color:var(--g600);}
+textarea.fi{resize:vertical;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+/* ── MODAL ── */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:300;padding:16px;}
+.modal{background:white;border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;}
+.modal-hd{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:17px;font-weight:700;color:var(--td);}
+.modal-bd{padding:20px 24px;}
+.modal-ft{padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+.xbtn{width:30px;height:30px;border-radius:6px;background:var(--g50);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tm);font-size:16px;}
+.xbtn:hover{background:var(--g100);}
+
+/* ── CERT CARDS ── */
+.cert-card{background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.cch{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.cno{font-size:10px;color:var(--tl);letter-spacing:.08em;font-family:monospace;}
+.ccb{padding:18px;}
+.ctb{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;margin-bottom:12px;background:var(--g50);color:var(--g800);border:1px solid var(--g200);}
+.c-holder{font-size:17px;font-weight:700;color:var(--td);margin-bottom:4px;}
+.c-meta{font-size:12px;color:var(--tl);}
+.c-det{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);}
+.c-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12px;}
+.c-row .lbl{color:var(--tl);}
+.c-row .val{color:var(--td);font-weight:500;}
+
+/* ── LOOKUP ── */
+.lookup-box{background:white;border:1px solid var(--border);border-radius:12px;padding:28px;text-align:center;margin-bottom:24px;}
+.lookup-title{font-size:18px;font-weight:700;color:var(--td);margin-bottom:6px;}
+.lookup-sub{font-size:13px;color:var(--tl);margin-bottom:20px;}
+.lookup-row{display:flex;gap:10px;max-width:480px;margin:0 auto;}
+.lookup-in{flex:1;padding:11px 16px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;transition:border .15s;font-family:inherit;}
+.lookup-in:focus{border-color:var(--g600);}
+
+/* ── RESULT ── */
+.result-card{background:white;border:2px solid var(--g600);border-radius:12px;overflow:hidden;margin-bottom:24px;}
+.rch{background:var(--g800);padding:16px 20px;display:flex;align-items:center;gap:12px;}
+.rch-icon{font-size:24px;color:white;}
+.rch-title{color:white;font-size:16px;font-weight:700;}
+.rch-no{color:var(--g200);font-size:11px;}
+.rcb{padding:20px;}
+.r-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+.r-field .lbl{font-size:11px;color:var(--tl);margin-bottom:3px;}
+.r-field .val{font-size:14px;font-weight:600;color:var(--td);}
+.valid-stamp{text-align:center;padding:14px;background:var(--g50);border-radius:8px;border:1px solid var(--g200);}
+.valid-stamp i{font-size:28px;color:#1e6b3f;display:block;margin-bottom:6px;}
+.valid-stamp p{font-size:14px;font-weight:700;color:var(--g800);}
+.valid-stamp span{font-size:11px;color:var(--tl);}
+
+/* ── PAGE ── */
+.page-hidden{display:none!important;}
+.empty-state{text-align:center;padding:40px 20px;color:var(--tl);font-size:13px;}
+.empty-state i{font-size:36px;display:block;margin-bottom:10px;opacity:.3;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.act-btn{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:white;color:var(--td);transition:all .15s;font-family:inherit;}
+.act-btn:hover{background:var(--g50);border-color:var(--g600);color:var(--g800);}
+.act-del{border-color:#fed7d7;color:#c53030;}
+.act-del:hover{background:#fff5f5;border-color:#fc8181;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--g800);color:white;padding:13px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.2);transform:translateY(80px);opacity:0;transition:all .28s cubic-bezier(.4,0,.2,1);}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* ── DELETE CONFIRM ── */
+.del-confirm{background:white;border-radius:16px;width:100%;max-width:360px;overflow:hidden;}
+.del-confirm-bd{padding:28px 24px;text-align:center;}
+.del-icon{width:56px;height:56px;border-radius:50%;background:#fff5f5;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;color:#c53030;}
+.del-title{font-size:16px;font-weight:700;color:var(--td);margin-bottom:8px;}
+.del-sub{font-size:13px;color:var(--tl);}
+.del-ft{padding:0 24px 24px;display:flex;gap:10px;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  :root{--sidebar-w:0px;}
+  .sidebar{transform:translateX(-240px);width:240px;}
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-overlay.open{display:block;}
+  .mobile-topbar{display:flex;}
+  .main{margin-left:0;padding-top:56px;}
+  .topbar{padding:14px 16px;}
+  .topbar-title{font-size:15px;}
+  .content{padding:16px;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .stats-grid .stat-card:last-child{grid-column:span 2;}
+  .grade-guide{grid-template-columns:repeat(2,1fr);}
+  .grade-guide .grade-item:last-child{grid-column:span 2;}
+  .grid-2{grid-template-columns:1fr;}
+  .grid-3{grid-template-columns:1fr;}
+  .form-row{grid-template-columns:1fr;}
+  .filter-bar{padding:10px 14px;}
+  .table th,.table td{padding:10px 12px;}
+  .topbar-actions .btn-outline{display:none;}
+  .lookup-row{flex-direction:column;}
+  .lookup-in{width:100%;}
+  .r-grid{grid-template-columns:1fr 1fr;}
+  .modal-bd{padding:16px 18px;}
+  .modal-ft{padding:12px 18px;}
+  .table-scroll{overflow-x:auto;}
+}
+@media(max-width:480px){
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .stats-grid .stat-card:last-child{grid-column:auto;}
+  .topbar{flex-direction:column;align-items:flex-start;gap:10px;padding:12px 14px;}
+  .topbar-actions{width:100%;}
+  .topbar-actions .btn{flex:1;justify-content:center;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lock-screen">
+  <div class="lock-box">
+    <div class="lock-logo">
+      <svg viewBox="0 0 40 40" fill="none">
+        <path d="M6 20L20 7L34 20V34H26V26H14V34H6V20Z" fill="#1B5132"/>
+        <rect x="17" y="14" width="6" height="8" rx="1" fill="white"/>
+      </svg>
+    </div>
+    <div class="lock-title">오늘의빈집 연구소</div>
+    <div class="lock-sub">관리자 비밀번호를 입력하세요</div>
+    <input class="lock-input" type="password" id="lock-pw" placeholder="••••" maxlength="10"
+      onkeydown="if(event.key==='Enter')tryUnlock()">
+    <button class="lock-btn" onclick="tryUnlock()"><i class="ti ti-lock-open"></i> 입장하기</button>
+    <div class="lock-err" id="lock-err">비밀번호가 올바르지 않습니다</div>
+  </div>
+</div>
+
+<!-- MOBILE TOP BAR -->
+<div class="mobile-topbar" id="mobile-topbar" style="display:none;">
+  <button class="mobile-menu-btn" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
+  <span class="mobile-logo-name">오늘의빈집 연구소</span>
+  <div style="width:36px;height:36px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0D2B1A;">소</div>
+</div>
+
+<!-- SIDEBAR OVERLAY -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<!-- APP -->
+<div class="app" id="app" style="display:none;">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 28 28" fill="none">
+          <path d="M4 14L14 5L24 14V24H18V18H10V24H4V14Z" fill="#1B5132"/>
+          <rect x="12" y="10" width="4" height="6" rx="1" fill="white"/>
+        </svg>
+      </div>
+      <div class="logo-name">오늘의빈집 연구소</div>
+      <div class="logo-sub">회원 관리 시스템</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-section">
+        <div class="nav-label">대시보드</div>
+        <button class="nav-item active" onclick="nav('dashboard')"><i class="ti ti-layout-dashboard"></i>전체 현황</button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">회원 관리</div>
+        <button class="nav-item" onclick="nav('members')"><i class="ti ti-users"></i>회원 목록</button>
+        <button class="nav-item" onclick="nav('register')"><i class="ti ti-user-plus"></i>신규 등록</button>
+        <button class="nav-item" onclick="nav('grades')"><i class="ti ti-award"></i>등급 관리</button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">자격증</div>
+        <button class="nav-item" onclick="nav('certs')"><i class="ti ti-certificate"></i>자격증 목록</button>
+        <button class="nav-item" onclick="nav('cert-issue')"><i class="ti ti-file-plus"></i>자격증 발급</button>
+        <button class="nav-item" onclick="nav('cert-lookup')"><i class="ti ti-search"></i>자격증 조회</button>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="admin-badge">
+        <div class="admin-av">소</div>
+        <div>
+          <div class="admin-name">최광운 소장</div>
+          <div class="admin-role">관리자 계정</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ── DASHBOARD ── -->
+    <div id="page-dashboard">
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">전체 현황 대시보드</div>
+          <div class="topbar-sub">오늘의빈집 연구소 회원 통계</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-outline btn-sm" onclick="nav('register')"><i class="ti ti-user-plus"></i>신규 등록</button>
+          <button class="btn btn-primary btn-sm" onclick="nav('cert-issue')"><i class="ti ti-certificate"></i>자격증 발급</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="stats-grid">
+          <div class="stat-card s0" onclick="filterAndNav('예비수강생')">
+            <div class="stat-label">예비수강생</div>
+            <div class="stat-num" id="sn0">0<span>명</span></div>
+            <span class="gb g-예비수강생" style="font-size:10px;padding:2px 8px;">대기중</span>
+          </div>
+          <div class="stat-card s1" onclick="filterAndNav('수강생')">
+            <div class="stat-label">수강생</div>
+            <div class="stat-num" id="sn1">0<span>명</span></div>
+            <span class="gb g-수강생" style="font-size:10px;padding:2px 8px;">수강중</span>
+          </div>
+          <div class="stat-card s2" onclick="filterAndNav('빈집플래너')">
+            <div class="stat-label">빈집플래너</div>
+            <div class="stat-num" id="sn2">0<span>명</span></div>
+            <span class="gb g-빈집플래너" style="font-size:10px;padding:2px 8px;">자격보유</span>
+          </div>
+          <div class="stat-card s3" onclick="filterAndNav('로컬큐레이터')">
+            <div class="stat-label">로컬큐레이터</div>
+            <div class="stat-num" id="sn3">0<span>명</span></div>
+            <span class="gb g-로컬큐레이터" style="font-size:10px;padding:2px 8px;">활동중</span>
+          </div>
+          <div class="stat-card s4" onclick="filterAndNav('소장')">
+            <div class="stat-label">소장</div>
+            <div class="stat-num" id="sn4">0<span>명</span></div>
+            <span class="gb g-소장" style="font-size:10px;padding:2px 8px;">최고권한</span>
+          </div>
+        </div>
+        <div class="grade-guide">
+          <div class="grade-item" onclick="filterAndNav('예비수강생')">
+            <div class="grade-icon" style="background:#f0f0f0;"><i class="ti ti-user" style="color:#718096;font-size:20px;"></i></div>
+            <div class="grade-name">예비수강생</div>
+            <div class="grade-cnt" id="gc0" style="color:#718096;">0</div>
+            <div class="grade-desc">관심 등록 · 수강 대기</div>
+          </div>
+          <div class="grade-item" onclick="filterAndNav('수강생')">
+            <div class="grade-icon" style="background:var(--g100);"><i class="ti ti-school" style="color:#1e6b3f;font-size:20px;"></i></div>
+            <div class="grade-name">수강생</div>
+            <div class="grade-cnt" id="gc1" style="color:#1e6b3f;">0</div>
+            <div class="grade-desc">교육과정 수강 중</div>
+          </div>
+          <div class="grade-item" onclick="filterAndNav('빈집플래너')">
+            <div class="grade-icon" style="background:#bee3f8;"><i class="ti ti-home-edit" style="color:#2b6cb0;font-size:20px;"></i></div>
+            <div class="grade-name">빈집플래너</div>
+            <div class="grade-cnt" id="gc2" style="color:#2b6cb0;">0</div>
+            <div class="grade-desc">현장 기획 자격 보유</div>
+          </div>
+          <div class="grade-item" onclick="filterAndNav('로컬큐레이터')">
+            <div class="grade-icon" style="background:var(--gold-l);"><i class="ti ti-map-pin" style="color:#7a5c00;font-size:20px;"></i></div>
+            <div class="grade-name">로컬큐레이터</div>
+            <div class="grade-cnt" id="gc3" style="color:#7a5c00;">0</div>
+            <div class="grade-desc">지역 콘텐츠 전문</div>
+          </div>
+          <div class="grade-item" onclick="filterAndNav('소장')">
+            <div class="grade-icon" style="background:var(--g800);"><i class="ti ti-crown" style="color:var(--gold);font-size:20px;"></i></div>
+            <div class="grade-name">소장</div>
+            <div class="grade-cnt" id="gc4" style="color:var(--g800);">0</div>
+            <div class="grade-desc">최고 운영 책임자</div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div style="padding:16px 20px 12px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;color:var(--td);">최근 등록 회원</div>
+            <table class="table"><thead><tr><th>이름</th><th>등급</th><th>등록일</th></tr></thead><tbody id="dash-members"></tbody></table>
+          </div>
+          <div class="card">
+            <div style="padding:16px 20px 12px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;color:var(--td);">최근 발급 자격증</div>
+            <table class="table"><thead><tr><th>번호</th><th>종류</th><th>성명</th></tr></thead><tbody id="dash-certs"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MEMBERS ── -->
+    <div id="page-members" class="page-hidden">
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">회원 목록</div>
+          <div class="topbar-sub" id="m-count-lbl">전체 0명</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-primary btn-sm" onclick="nav('register')"><i class="ti ti-user-plus"></i>신규 등록</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="card">
+          <div class="filter-bar">
+            <div class="search-box">
+              <i class="ti ti-search"></i>
+              <input type="text" placeholder="이름·이메일·지역 검색..." id="m-search" oninput="filterMembers()">
+            </div>
+            <select class="filter-select" id="m-grade-f" onchange="filterMembers()">
+              <option value="">전체 등급</option>
+              <option>예비수강생</option><option>수강생</option>
+              <option>빈집플래너</option><option>로컬큐레이터</option><option>소장</option>
+            </select>
+            <select class="filter-select" id="m-region-f" onchange="filterMembers()">
+              <option value="">전체 지역</option>
+              <option>사천시</option><option>통영시</option>
+              <option>고성군</option><option>태안군</option><option>기타</option>
+            </select>
+          </div>
+          <div class="table-scroll">
+            <table class="table">
+              <thead><tr><th>회원</th><th>등급</th><th>연락처</th><th>지역</th><th>자격증</th><th>등록일</th><th>관리</th></tr></thead>
+              <tbody id="m-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── REGISTER ── -->
+    <div id="page-register" class="page-hidden">
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">신규 회원 등록</div>
+          <div class="topbar-sub">새로운 회원 정보를 입력하세요</div>
+        </div>
+      </div>
+      <div class="content">
+        <div style="max-width:560px;">
+          <div class="card"><div style="padding:22px 24px;">
+            <div class="fg"><label class="fl">성명 *</label><input class="fi" type="text" id="r-name" placeholder="홍길동"></div>
+            <div class="form-row">
+              <div class="fg"><label class="fl">연락처 *</label><input class="fi" type="text" id="r-phone" placeholder="010-0000-0000"></div>
+              <div class="fg"><label class="fl">이메일</label><input class="fi" type="email" id="r-email" placeholder="example@email.com"></div>
+            </div>
+            <div class="form-row">
+              <div class="fg"><label class="fl">회원 등급 *</label>
+                <select class="fs" id="r-grade">
+                  <option value="">등급 선택</option>
+                  <option>예비수강생</option><option>수강생</option>
+                  <option>빈집플래너</option><option>로컬큐레이터</option><option>소장</option>
+                </select>
+              </div>
+              <div class="fg"><label class="fl">활동 지역</label>
+                <select class="fs" id="r-region">
+                  <option value="">지역 선택</option>
+                  <option>사천시</option><option>통영시</option>
+                  <option>고성군</option><option>태안군</option><option>기타</option>
+                </select>
+              </div>
+            </div>
+            <div class="fg"><label class="fl">메모</label><textarea class="fi" id="r-memo" rows="3" placeholder="수강 경로, 전문분야 등"></textarea></div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:8px;">
+              <button class="btn btn-outline" onclick="nav('members')">취소</button>
+              <button class="btn btn-primary" onclick="registerMember()"><i class="ti ti-user-check"></i>등록 완료</button>
+            </div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GRADES ── -->
+    <div id="page-grades" class="page-hidden">
+      <div class="topbar">
+        <div><div class="topbar-title">등급 관리</div><div class="topbar-sub">등급 기준 및 자격 안내</div></div>
+      </div>
+      <div class="content">
+        <div class="card table-scroll">
+          <table class="table">
+            <thead><tr><th>등급</th><th>설명</th><th>자격 요건</th><th>현원</th><th>자격증</th></tr></thead>
+            <tbody id="grades-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CERTS ── -->
+    <div id="page-certs" class="page-hidden">
+      <div class="topbar">
+        <div><div class="topbar-title">자격증 목록</div><div class="topbar-sub" id="c-count-lbl">총 0건</div></div>
+        <div class="topbar-actions">
+          <button class="btn btn-primary btn-sm" onclick="nav('cert-issue')"><i class="ti ti-file-plus"></i>자격증 발급</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="card">
+          <div class="filter-bar">
+            <div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="이름 또는 번호 검색..." id="c-search" oninput="filterCerts()"></div>
+            <select class="filter-select" id="c-type-f" onchange="filterCerts()">
+              <option value="">전체</option><option>빈집플래너</option><option>로컬큐레이터</option>
+            </select>
+          </div>
+          <div class="table-scroll">
+            <table class="table">
+              <thead><tr><th>번호</th><th>종류</th><th>성명</th><th>발급일</th><th>유효기간</th><th>상태</th></tr></thead>
+              <tbody id="c-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CERT ISSUE ── -->
+    <div id="page-cert-issue" class="page-hidden">
+      <div class="topbar">
+        <div><div class="topbar-title">자격증 발급</div><div class="topbar-sub">빈집플래너 · 로컬큐레이터 자격증 발급</div></div>
+      </div>
+      <div class="content">
+        <div style="max-width:560px;">
+          <div class="card"><div style="padding:22px 24px;">
+            <div class="fg"><label class="fl">자격증 종류 *</label>
+              <select class="fs" id="ci-type" onchange="updatePreview()">
+                <option value="">종류 선택</option><option>빈집플래너</option><option>로컬큐레이터</option>
+              </select>
+            </div>
+            <div class="fg"><label class="fl">수여 회원 *</label>
+              <select class="fs" id="ci-member" onchange="updatePreview()"><option value="">회원 선택</option></select>
+            </div>
+            <div class="form-row">
+              <div class="fg"><label class="fl">발급일 *</label><input class="fi" type="date" id="ci-date" onchange="updatePreview()"></div>
+              <div class="fg"><label class="fl">만료일</label><input class="fi" type="date" id="ci-expire"></div>
+            </div>
+            <div class="fg"><label class="fl">비고</label><input class="fi" type="text" id="ci-note" placeholder="과정명, 기수 등"></div>
+            <div id="ci-preview" style="display:none;margin-bottom:16px;padding:14px;background:var(--g50);border-radius:8px;border:1px solid var(--g200);">
+              <div style="font-size:11px;font-weight:600;color:#1e6b3f;margin-bottom:6px;">발급 미리보기</div>
+              <div style="font-size:13px;color:var(--td);" id="ci-prev-txt"></div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+              <button class="btn btn-outline" onclick="nav('certs')">취소</button>
+              <button class="btn btn-primary" onclick="issueCert()"><i class="ti ti-certificate"></i>자격증 발급</button>
+            </div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CERT LOOKUP ── -->
+    <div id="page-cert-lookup" class="page-hidden">
+      <div class="topbar">
+        <div><div class="topbar-title">자격증 조회</div><div class="topbar-sub">진위 확인 및 전체 현황</div></div>
+      </div>
+      <div class="content">
+        <div class="lookup-box">
+          <div class="lookup-title"><i class="ti ti-shield-check"></i> 자격증 진위 조회</div>
+          <div class="lookup-sub">자격증 번호 또는 성명을 입력하세요</div>
+          <div class="lookup-row">
+            <input class="lookup-in" type="text" id="lu-input" placeholder="OBJ-2024-001 또는 홍길동" onkeydown="if(event.key==='Enter')lookupCert()">
+            <button class="btn btn-primary" onclick="lookupCert()"><i class="ti ti-search"></i>조회</button>
+          </div>
+        </div>
+        <div id="lu-result"></div>
+        <div style="font-size:14px;font-weight:600;color:var(--td);margin-bottom:16px;">발급 자격증 현황</div>
+        <div class="grid-3" id="cert-cards"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MEMBER DETAIL / EDIT MODAL -->
+<div id="m-modal" class="modal-ov" style="display:none;">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title" id="mm-title">회원 정보</div>
+      <button class="xbtn" onclick="closeModal('m-modal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-bd" id="mm-body"></div>
+    <div class="modal-ft" id="mm-ft"></div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div id="del-modal" class="modal-ov" style="display:none;">
+  <div class="del-confirm">
+    <div class="del-confirm-bd">
+      <div class="del-icon"><i class="ti ti-trash"></i></div>
+      <div class="del-title" id="del-title">정말 삭제하시겠습니까?</div>
+      <div class="del-sub" id="del-sub">이 작업은 되돌릴 수 없습니다.</div>
+    </div>
+    <div class="del-ft">
+      <button class="btn btn-outline" style="flex:1;" onclick="closeModal('del-modal')">취소</button>
+      <button class="btn btn-danger" style="flex:1;" id="del-confirm-btn">삭제</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-msg"></span></div>
+
+<script>
+const PW = '0901';
+const GRADES = ['예비수강생','수강생','빈집플래너','로컬큐레이터','소장'];
+const G_DESC = ['관심 등록 및 수강 대기 상태','교육과정 수강 중인 회원','빈집 재생 기획 실무 자격 보유자','지역 콘텐츠 기획·운영 전문가','연구소 최고 운영 책임자'];
+const G_REQ = ['신청서 제출','수강 등록 완료','기초과정 수료 + 실습 이수','빈집플래너 + 심화과정 + 현장실적','소장 임명'];
+
+// 잠금화면
+function tryUnlock() {
+  const val = document.getElementById('lock-pw').value;
+  if (val === PW) {
+    document.getElementById('lock-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('mobile-topbar').style.display = 'flex';
+    renderDashboard();
+  } else {
+    const lb = document.querySelector('.lock-box');
+    const err = document.getElementById('lock-err');
+    err.style.display = 'block';
+    lb.classList.add('lock-shake');
+    setTimeout(() => lb.classList.remove('lock-shake'), 400);
+    document.getElementById('lock-pw').value = '';
+  }
+}
+document.getElementById('lock-pw').addEventListener('keydown', e => { if(e.key==='Enter') tryUnlock(); });
+
+// 사이드바 모바일
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+
+// 데이터
+let members = [
+  {id:1,name:'김민준',phone:'010-1234-5678',email:'minjun@example.com',grade:'로컬큐레이터',region:'사천시',regDate:'2024-03-10',memo:'사천 도심 공실 프로젝트 참여'},
+  {id:2,name:'이서연',phone:'010-2345-6789',email:'seoyeon@example.com',grade:'빈집플래너',region:'통영시',regDate:'2024-04-20',memo:'통영 어촌 빈집 실태조사'},
+  {id:3,name:'박지호',phone:'010-3456-7890',email:'jiho@example.com',grade:'수강생',region:'고성군',regDate:'2024-06-05',memo:''},
+  {id:4,name:'최아름',phone:'010-4567-8901',email:'areum@example.com',grade:'빈집플래너',region:'사천시',regDate:'2024-07-15',memo:'삼천포 구도심 관심'},
+  {id:5,name:'정하늘',phone:'010-5678-9012',email:'haneul@example.com',grade:'수강생',region:'태안군',regDate:'2024-08-22',memo:''},
+  {id:6,name:'윤서준',phone:'010-6789-0123',email:'seojun@example.com',grade:'로컬큐레이터',region:'사천시',regDate:'2024-02-14',memo:'비토섬 스테이 프로젝트'},
+  {id:7,name:'강예진',phone:'010-7890-1234',email:'yejin@example.com',grade:'예비수강생',region:'기타',regDate:'2025-01-03',memo:'온라인 신청'},
+  {id:8,name:'임도현',phone:'010-8901-2345',email:'dohyun@example.com',grade:'수강생',region:'사천시',regDate:'2024-09-10',memo:''},
+  {id:9,name:'한소희',phone:'010-9012-3456',email:'sohee@example.com',grade:'빈집플래너',region:'고성군',regDate:'2024-10-01',memo:''},
+  {id:10,name:'오재원',phone:'010-0123-4567',email:'jaewon@example.com',grade:'예비수강생',region:'통영시',regDate:'2025-02-28',memo:'지인 소개'},
+  {id:11,name:'최광운',phone:'010-1111-2222',email:'kwangwoon@obnj.kr',grade:'소장',region:'사천시',regDate:'2023-01-01',memo:'오늘의빈집연구소 설립'},
+];
+let certs = [
+  {id:1,no:'OBJ-2024-001',type:'빈집플래너',memberId:2,name:'이서연',issueDate:'2024-05-30',expireDate:'2027-05-29',note:'1기 과정'},
+  {id:2,no:'OBJ-2024-002',type:'빈집플래너',memberId:4,name:'최아름',issueDate:'2024-09-10',expireDate:'2027-09-09',note:'2기 과정'},
+  {id:3,no:'OBJ-2024-003',type:'로컬큐레이터',memberId:1,name:'김민준',issueDate:'2024-10-20',expireDate:'2027-10-19',note:'심화과정 수료'},
+  {id:4,no:'OBJ-2024-004',type:'로컬큐레이터',memberId:6,name:'윤서준',issueDate:'2024-11-05',expireDate:'2027-11-04',note:'비토 프로젝트 연계'},
+  {id:5,no:'OBJ-2025-001',type:'빈집플래너',memberId:9,name:'한소희',issueDate:'2025-01-15',expireDate:'2028-01-14',note:'3기 과정'},
+];
+let nextMId = 12, nextCId = 6, certSeq = 6;
+
+// 유틸
+function toast(msg, err=false) {
+  const t = document.getElementById('toast');
+  t.style.background = err ? '#c53030' : 'var(--g800)';
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+// 네비
+function nav(page) {
+  document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('page-hidden'));
+  document.getElementById('page-'+page).classList.remove('page-hidden');
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.remove('active');
+    if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes("'"+page+"'")) el.classList.add('active');
+  });
+  // close sidebar on mobile
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+  if(page==='dashboard') renderDashboard();
+  if(page==='members') renderMembers(members);
+  if(page==='grades') renderGrades();
+  if(page==='certs') renderCerts(certs);
+  if(page==='cert-issue') populateMSel();
+  if(page==='cert-lookup') { renderCertCards(); document.getElementById('lu-result').innerHTML=''; }
+}
+function filterAndNav(g) { nav('members'); document.getElementById('m-grade-f').value=g; filterMembers(); }
+
+// 통계
+function updateStats() {
+  GRADES.forEach((g,i) => {
+    const n = members.filter(m=>m.grade===g).length;
+    const sn = document.getElementById('sn'+i);
+    const gc = document.getElementById('gc'+i);
+    if(sn) sn.innerHTML = n+'<span>명</span>';
+    if(gc) gc.textContent = n;
+  });
+}
+
+// 대시보드
+function renderDashboard() {
+  updateStats();
+  const rec = [...members].sort((a,b)=>new Date(b.regDate)-new Date(a.regDate)).slice(0,5);
+  document.getElementById('dash-members').innerHTML = rec.map(m=>`
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:8px;">
+        <div class="mav av-${m.grade}" style="width:28px;height:28px;font-size:10px;">${m.name[0]}</div>
+        <span style="font-weight:500;">${m.name}</span>
+      </div></td>
+      <td><span class="gb g-${m.grade}">${m.grade}</span></td>
+      <td style="font-size:12px;color:var(--tl);">${m.regDate}</td>
+    </tr>`).join('');
+  const rc = [...certs].sort((a,b)=>new Date(b.issueDate)-new Date(a.issueDate)).slice(0,5);
+  document.getElementById('dash-certs').innerHTML = rc.map(c=>`
+    <tr>
+      <td style="font-family:monospace;font-size:11px;color:var(--tl);">${c.no}</td>
+      <td><span class="ctb" style="margin:0;padding:3px 8px;font-size:11px;">${c.type}</span></td>
+      <td style="font-weight:500;">${c.name}</td>
+    </tr>`).join('');
+}
+
+// 회원 목록
+function renderMembers(list) {
+  const tbody = document.getElementById('m-tbody');
+  document.getElementById('m-count-lbl').textContent = '전체 '+list.length+'명';
+  if(!list.length) { tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><i class="ti ti-users-off"></i>검색 결과 없음</div></td></tr>`; return; }
+  const mc = {};
+  certs.forEach(c => { mc[c.memberId]=(mc[c.memberId]||[]).concat(c); });
+  tbody.innerHTML = list.map(m => {
+    const mcs = mc[m.id]||[];
+    const ch = mcs.length ? mcs.map(c=>`<span class="cb cv" style="margin-right:3px;"><i class="ti ti-certificate"></i>${c.type}</span>`).join('') : `<span class="cb cn">없음</span>`;
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:10px;">
+        <div class="mav av-${m.grade}">${m.name[0]}</div>
+        <div>
+          <div style="font-weight:600;font-size:13px;">${m.name}</div>
+          <div style="font-size:11px;color:var(--tl);">${m.email||'—'}</div>
+        </div>
+      </div></td>
+      <td><span class="gb g-${m.grade}">${m.grade}</span></td>
+      <td style="font-size:12px;color:var(--tm);">${m.phone}</td>
+      <td style="font-size:12px;color:var(--tm);">${m.region||'—'}</td>
+      <td>${ch}</td>
+      <td style="font-size:12px;color:var(--tl);">${m.regDate}</td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="act-btn" onclick="openDetail(${m.id})"><i class="ti ti-eye"></i>상세</button>
+          <button class="act-btn" onclick="openEdit(${m.id})"><i class="ti ti-edit"></i>수정</button>
+          <button class="act-btn act-del" onclick="confirmDelete('member',${m.id})"><i class="ti ti-trash"></i>삭제</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterMembers() {
+  const q = document.getElementById('m-search').value.toLowerCase();
+  const g = document.getElementById('m-grade-f').value;
+  const r = document.getElementById('m-region-f').value;
+  renderMembers(members.filter(m =>
+    (!q||m.name.includes(q)||(m.email&&m.email.includes(q))||(m.region&&m.region.includes(q))) &&
+    (!g||m.grade===g) && (!r||m.region===r)
+  ));
+}
+
+// 회원 상세
+function openDetail(id) {
+  const m = members.find(x=>x.id===id);
+  if(!m) return;
+  const mcs = certs.filter(c=>c.memberId===id);
+  const ch = mcs.length
+    ? mcs.map(c=>`<div style="padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span class="ctb" style="margin:0;">${c.type}</span>
+          <span class="cb cv"><i class="ti ti-check"></i>유효</span>
+        </div>
+        <div style="font-size:11px;color:var(--tl);margin-top:5px;">번호: ${c.no} · 만료: ${c.expireDate}</div>
+      </div>`).join('')
+    : `<div style="padding:14px 0;text-align:center;color:var(--tl);font-size:13px;"><i class="ti ti-certificate-off"></i> 발급된 자격증 없음</div>`;
+  document.getElementById('mm-title').textContent = '회원 정보';
+  document.getElementById('mm-body').innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+      <div class="mav av-${m.grade}" style="width:52px;height:52px;font-size:18px;font-weight:700;">${m.name[0]}</div>
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--td);">${m.name}</div>
+        <span class="gb g-${m.grade}" style="margin-top:4px;">${m.grade}</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      ${[['연락처',m.phone],['활동 지역',m.region||'미등록'],['이메일',m.email||'—'],['등록일',m.regDate]].map(([k,v])=>`
+      <div style="padding:10px 12px;background:var(--g50);border-radius:8px;">
+        <div style="font-size:11px;color:var(--tl);margin-bottom:3px;">${k}</div>
+        <div style="font-size:13px;font-weight:600;">${v}</div>
+      </div>`).join('')}
+    </div>
+    ${m.memo?`<div style="padding:10px 14px;background:#fafafa;border-radius:8px;font-size:12px;color:var(--tm);margin-bottom:16px;border:1px solid var(--border);"><i class="ti ti-note"></i> ${m.memo}</div>`:''}
+    <div style="font-size:12px;font-weight:600;color:var(--tm);margin-bottom:8px;">보유 자격증</div>
+    ${ch}
+    <div style="margin-top:16px;">
+      <div style="font-size:12px;font-weight:600;color:var(--tm);margin-bottom:8px;">등급 변경</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${GRADES.filter(g=>g!==m.grade).map(g=>`
+          <button class="act-btn" onclick="changeGrade(${m.id},'${g}')">→ ${g}</button>`).join('')}
+      </div>
+    </div>`;
+  document.getElementById('mm-ft').innerHTML = `
+    <button class="btn btn-outline" onclick="closeModal('m-modal')">닫기</button>
+    <button class="btn btn-primary" onclick="closeModal('m-modal');openEdit(${m.id})"><i class="ti ti-edit"></i>수정</button>`;
+  document.getElementById('m-modal').style.display = 'flex';
+}
+
+// 회원 수정
+function openEdit(id) {
+  const m = members.find(x=>x.id===id);
+  if(!m) return;
+  document.getElementById('mm-title').textContent = '회원 정보 수정';
+  document.getElementById('mm-body').innerHTML = `
+    <div class="fg"><label class="fl">성명 *</label><input class="fi" type="text" id="e-name" value="${m.name}"></div>
+    <div class="form-row">
+      <div class="fg"><label class="fl">연락처 *</label><input class="fi" type="text" id="e-phone" value="${m.phone}"></div>
+      <div class="fg"><label class="fl">이메일</label><input class="fi" type="email" id="e-email" value="${m.email||''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label class="fl">등급 *</label>
+        <select class="fs" id="e-grade">
+          ${GRADES.map(g=>`<option ${g===m.grade?'selected':''}>${g}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg"><label class="fl">활동 지역</label>
+        <select class="fs" id="e-region">
+          <option value="">선택</option>
+          ${['사천시','통영시','고성군','태안군','기타'].map(r=>`<option ${r===m.region?'selected':''}>${r}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">메모</label><textarea class="fi" id="e-memo" rows="3">${m.memo||''}</textarea></div>`;
+  document.getElementById('mm-ft').innerHTML = `
+    <button class="btn btn-outline" onclick="closeModal('m-modal')">취소</button>
+    <button class="btn btn-primary" onclick="saveMember(${m.id})"><i class="ti ti-device-floppy"></i>저장</button>`;
+  document.getElementById('m-modal').style.display = 'flex';
+}
+
+function saveMember(id) {
+  const m = members.find(x=>x.id===id);
+  if(!m) return;
+  const name = document.getElementById('e-name').value.trim();
+  const phone = document.getElementById('e-phone').value.trim();
+  if(!name||!phone) { toast('성명과 연락처는 필수입니다.',true); return; }
+  m.name = name;
+  m.phone = phone;
+  m.email = document.getElementById('e-email').value.trim();
+  m.grade = document.getElementById('e-grade').value;
+  m.region = document.getElementById('e-region').value;
+  m.memo = document.getElementById('e-memo').value.trim();
+  closeModal('m-modal');
+  renderMembers(members);
+  updateStats();
+  toast(`${name} 회원 정보 수정 완료`);
+}
+
+function changeGrade(id, g) {
+  const m = members.find(x=>x.id===id);
+  if(!m) return;
+  m.grade = g;
+  closeModal('m-modal');
+  renderMembers(members);
+  updateStats();
+  toast(`${m.name} → '${g}' 등급 변경 완료`);
+}
+
+// 삭제 확인
+let pendingDelete = null;
+function confirmDelete(type, id) {
+  if(type==='member') {
+    const m = members.find(x=>x.id===id);
+    if(!m) return;
+    document.getElementById('del-title').textContent = `'${m.name}' 회원을 삭제하시겠습니까?`;
+    document.getElementById('del-sub').textContent = '관련 자격증 데이터는 유지됩니다. 이 작업은 되돌릴 수 없습니다.';
+    pendingDelete = () => { members = members.filter(x=>x.id!==id); closeModal('del-modal'); renderMembers(members); updateStats(); toast(`${m.name} 회원 삭제 완료`); };
+  }
+  document.getElementById('del-modal').style.display = 'flex';
+  document.getElementById('del-confirm-btn').onclick = pendingDelete;
+}
+
+// 신규 등록
+function registerMember() {
+  const name = document.getElementById('r-name').value.trim();
+  const phone = document.getElementById('r-phone').value.trim();
+  const grade = document.getElementById('r-grade').value;
+  if(!name||!phone||!grade) { toast('성명, 연락처, 등급은 필수입니다.',true); return; }
+  const today = new Date().toISOString().slice(0,10);
+  members.unshift({id:nextMId++,name,phone,email:document.getElementById('r-email').value.trim(),grade,region:document.getElementById('r-region').value,regDate:today,memo:document.getElementById('r-memo').value.trim()});
+  ['r-name','r-phone','r-email','r-memo'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('r-grade').value='';
+  document.getElementById('r-region').value='';
+  toast(`${name} 회원 등록 완료!`);
+  nav('members');
+}
+
+// 등급 관리
+function renderGrades() {
+  document.getElementById('grades-tbody').innerHTML = GRADES.map((g,i)=>{
+    const n = members.filter(m=>m.grade===g).length;
+    const hc = i>=2;
+    return `<tr>
+      <td><span class="gb g-${g}">${g}</span></td>
+      <td style="font-size:12px;color:var(--tm);">${G_DESC[i]}</td>
+      <td style="font-size:12px;color:var(--tl);">${G_REQ[i]}</td>
+      <td style="font-weight:600;">${n}명</td>
+      <td>${hc?`<span class="cb cv"><i class="ti ti-check"></i>발급 가능</span>`:`<span class="cb cn">미해당</span>`}</td>
+    </tr>`;
+  }).join('');
+}
+
+// 자격증 목록
+function renderCerts(list) {
+  document.getElementById('c-count-lbl').textContent = '총 '+list.length+'건 발급됨';
+  const tbody = document.getElementById('c-tbody');
+  if(!list.length) { tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state"><i class="ti ti-certificate-off"></i>발급된 자격증 없음</div></td></tr>`; return; }
+  tbody.innerHTML = list.map(c=>`<tr>
+    <td style="font-family:monospace;font-weight:600;font-size:12px;color:#1e6b3f;">${c.no}</td>
+    <td><span class="ctb" style="margin:0;padding:3px 10px;">${c.type}</span></td>
+    <td style="font-weight:600;">${c.name}</td>
+    <td style="font-size:12px;color:var(--tm);">${c.issueDate}</td>
+    <td style="font-size:12px;color:var(--tm);">${c.expireDate||'—'}</td>
+    <td><span class="cb cv"><i class="ti ti-check"></i>유효</span></td>
+  </tr>`).join('');
+}
+
+function filterCerts() {
+  const q = document.getElementById('c-search').value.toLowerCase();
+  const t = document.getElementById('c-type-f').value;
+  renderCerts(certs.filter(c=>(!q||c.name.includes(q)||c.no.toLowerCase().includes(q))&&(!t||c.type===t)));
+}
+
+// 자격증 발급
+function populateMSel() {
+  const sel = document.getElementById('ci-member');
+  sel.innerHTML = '<option value="">회원 선택</option>' +
+    members.filter(m=>['빈집플래너','로컬큐레이터','소장'].includes(m.grade))
+      .map(m=>`<option value="${m.id}">${m.name} (${m.grade})</option>`).join('');
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('ci-date').value = today;
+  const exp = new Date(); exp.setFullYear(exp.getFullYear()+3);
+  document.getElementById('ci-expire').value = exp.toISOString().slice(0,10);
+}
+
+function updatePreview() {
+  const type = document.getElementById('ci-type').value;
+  const mId = parseInt(document.getElementById('ci-member').value);
+  const date = document.getElementById('ci-date').value;
+  const pv = document.getElementById('ci-preview');
+  if(type&&mId&&date) {
+    const m = members.find(x=>x.id===mId);
+    const yr = date.slice(0,4);
+    const pno = `OBJ-${yr}-${String(certSeq).padStart(3,'0')}`;
+    document.getElementById('ci-prev-txt').innerHTML =
+      `<strong>${m.name}</strong>님에게 <strong>${type}</strong> 자격증 발급 예정<br>
+      <span style="font-family:monospace;font-size:11px;color:var(--tl);">예정 번호: ${pno}</span>`;
+    pv.style.display='block';
+  } else { pv.style.display='none'; }
+}
+
+function issueCert() {
+  const type = document.getElementById('ci-type').value;
+  const mId = parseInt(document.getElementById('ci-member').value);
+  const date = document.getElementById('ci-date').value;
+  const expire = document.getElementById('ci-expire').value;
+  const note = document.getElementById('ci-note').value;
+  if(!type||!mId||!date) { toast('종류, 회원, 발급일은 필수입니다.',true); return; }
+  const m = members.find(x=>x.id===mId);
+  const yr = date.slice(0,4);
+  const no = `OBJ-${yr}-${String(certSeq).padStart(3,'0')}`;
+  certSeq++;
+  certs.unshift({id:nextCId++,no,type,memberId:mId,name:m.name,issueDate:date,expireDate:expire,note,status:'valid'});
+  toast(`${m.name}님 ${type} 자격증(${no}) 발급 완료!`);
+  nav('certs');
+}
+
+// 자격증 조회
+function renderCertCards() {
+  const grid = document.getElementById('cert-cards');
+  if(!certs.length) { grid.innerHTML=`<div style="grid-column:1/-1;"><div class="empty-state"><i class="ti ti-certificate-off"></i>발급된 자격증 없음</div></div>`; return; }
+  grid.innerHTML = certs.slice(0,9).map(c=>`
+    <div class="cert-card">
+      <div class="cch">
+        <span class="ctb" style="margin:0;">${c.type}</span>
+        <span class="cno">${c.no}</span>
+      </div>
+      <div class="ccb">
+        <div class="c-holder">${c.name}</div>
+        <div class="c-meta">${c.issueDate} 발급</div>
+        <div class="c-det">
+          <div class="c-row"><span class="lbl">유효기간</span><span class="val">${c.expireDate||'무기한'}</span></div>
+          <div class="c-row"><span class="lbl">상태</span><span class="cb cv"><i class="ti ti-check"></i>유효</span></div>
+          ${c.note?`<div class="c-row"><span class="lbl">비고</span><span class="val">${c.note}</span></div>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function lookupCert() {
+  const q = document.getElementById('lu-input').value.trim();
+  if(!q) return;
+  const found = certs.find(c=>c.no.toLowerCase()===q.toLowerCase()||c.name===q);
+  const rd = document.getElementById('lu-result');
+  if(found) {
+    rd.innerHTML = `
+      <div class="result-card">
+        <div class="rch">
+          <i class="ti ti-certificate rch-icon"></i>
+          <div>
+            <div class="rch-title">${found.type} 자격증</div>
+            <div class="rch-no">${found.no}</div>
+          </div>
+        </div>
+        <div class="rcb">
+          <div class="r-grid">
+            <div class="r-field"><div class="lbl">자격 보유자</div><div class="val">${found.name}</div></div>
+            <div class="r-field"><div class="lbl">자격 종류</div><div class="val">${found.type}</div></div>
+            <div class="r-field"><div class="lbl">발급일</div><div class="val">${found.issueDate}</div></div>
+            <div class="r-field"><div class="lbl">유효기간</div><div class="val">${found.expireDate||'무기한'}</div></div>
+          </div>
+          <div class="valid-stamp">
+            <i class="ti ti-shield-check"></i>
+            <p>유효한 자격증입니다</p>
+            <span>오늘의빈집 연구소 발급 · 공식 인증</span>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    rd.innerHTML = `
+      <div style="background:white;border:1px solid var(--border);border-radius:12px;padding:28px;text-align:center;margin-bottom:24px;">
+        <i class="ti ti-search-off" style="font-size:36px;color:#e53e3e;display:block;margin-bottom:12px;"></i>
+        <div style="font-size:15px;font-weight:700;color:var(--td);margin-bottom:6px;">조회 결과 없음</div>
+        <div style="font-size:13px;color:var(--tl);">"${q}"에 해당하는 자격증을 찾을 수 없습니다</div>
+      </div>`;
+  }
+}
+</script>
+</body>
+</html>
